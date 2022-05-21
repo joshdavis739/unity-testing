@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,14 +9,21 @@ public class PlayerController : MonoBehaviour
 {
     public float speed = 1;
     
-    private Rigidbody2D _rb;
+    public Rigidbody2D rigidBody;
+
+    public Animator animator;
+
+    public SpriteRenderer spriteRenderer;
 
     private Vector2 position;
+
+    private DateTime _lastTimeMoved;
 
     // Start is called before the first frame update
     void Start() 
     {
-        _rb = GetComponent<Rigidbody2D>();
+        rigidBody.freezeRotation = true;
+        // _rb = GetComponent<Rigidbody2D>();
     }
 
     void OnMove(InputValue movementValue) 
@@ -26,36 +35,40 @@ public class PlayerController : MonoBehaviour
         inputVector.x *= speed;
         inputVector.y *= speed;
 
-        _rb.velocity = inputVector;
-        if (inputVector.x != 0 || inputVector.y != 0 ) {
-            _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, 0f, angle * 180 / Mathf.PI), 1);
-            // _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, 0f, angle), 0.5F);
-            // StartCoroutine(Rotate(angle * 180 / Mathf.PI));
+        rigidBody.velocity = inputVector;
+
+        if (inputVector.x != 0 || inputVector.y != 0) {
+            // o lawd he running
+            animator.SetBool("IsMoving", true);
+            animator.SetBool("IsSleeping", false);
+            SleepDelay();
+        }
+        else {
+            // o lawd he waiting
+            animator.SetBool("IsMoving", false);
+        }
+
+        if (inputVector.x > 0) {
+            spriteRenderer.flipX = true;
+            // _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, -180, 0f), 1);
+        }
+        if (inputVector.x < 0) {
+            spriteRenderer.flipX = false;
+            // _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, 180, 0f), 1);
         }
     }
 
-    IEnumerator Rotate(float targetAngle)
-    {
-        while (_rb.transform.rotation.y != targetAngle)
-        {
-            _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, 0f, targetAngle), 1);
-            // _rb.transform.rotation = Quaternion.Slerp(_rb.transform.rotation, Quaternion.Euler(0f, targetAngle, 0f), 3f * Time.deltaTime);
-            yield return null;
+    private async Task SleepDelay() {
+        _lastTimeMoved = DateTime.Now;
+        await Task.Delay(2000);
+        if (_lastTimeMoved.AddMilliseconds(1800) <= DateTime.Now) {
+            // o lawd he sleeping
+            animator.SetBool("IsSleeping", true);
         }
-        _rb.transform.rotation = Quaternion.Euler(0f, 0f, targetAngle);
-        yield return null;
-    }     
-
-    // private void FixedUpdate()
-    // {
-    //     Vector3 movement = new Vector3(_movementX, 0.0f, _movementY);
-
-    //     _rb.MovePosition(movement * speed);
-    // }
+    }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        _rb.angularVelocity = 0F;
     //Do something
     }
 
